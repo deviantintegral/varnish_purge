@@ -78,6 +78,23 @@ class VarnishPurgeFeatureContext extends RawDrupalContext implements SnippetAcce
     $this->purgeTag('node_list');
   }
 
+  /**
+   * @When I purge the home page
+   */
+  public function iPurgeTheHomepage() {
+    $p = \Drupal::service('purge.purgers');
+    // This dummy processor is literally called "a".
+    $a = \Drupal::service('purge.processors')->get('a');
+    $invalidations = [
+      \Drupal::service('purge.invalidation.factory')
+        ->get('url', '/')
+    ];
+
+    // Varnish does have a queue, so if we get random failures we may need a
+    // sleep here.
+    $p->invalidate($a, $invalidations);
+  }
+
   private static function purgeTag(string $tag) {
     $p = \Drupal::service('purge.purgers');
     // This dummy processor is literally called "a".
