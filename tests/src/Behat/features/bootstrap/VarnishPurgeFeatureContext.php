@@ -5,7 +5,7 @@ use Behat\Testwork\Hook\Scope\BeforeSuiteScope;
 use Drupal\DrupalExtension\Context\RawDrupalContext;
 
 /**
- * Behat steps for testing the varnish_purge module.
+ * Behat steps for testing the varnish_purger module.
  *
  * @codingStandardsIgnoreStart
  */
@@ -20,8 +20,8 @@ class VarnishPurgeFeatureContext extends RawDrupalContext implements SnippetAcce
   public static function prepare(BeforeSuiteScope $scope) {
     /** @var \Drupal\Core\Extension\ModuleHandler $moduleHandler */
     $moduleHandler = \Drupal::service('module_handler');
-    if (!$moduleHandler->moduleExists('varnish_purge')) {
-      \Drupal::service('module_installer')->install(['varnish_purge']);
+    if (!$moduleHandler->moduleExists('varnish_purger')) {
+      \Drupal::service('module_installer')->install(['varnish_purger']);
     }
 
     // Also uninstall the inline form errors module for easier testing.

@@ -64,11 +64,11 @@
   <!-- Filter for coverage reports. -->
   <filter>
     <whitelist processUncoveredFilesFromWhitelist="true">
-      <directory>../modules/varnish_purge</directory>
+      <directory>../modules/varnish_purger</directory>
       <!-- By definition test classes have no tests. -->
       <exclude>
-        <directory>../modules/varnish_purge/tests</directory>
-        <directory>../modules/varnish_purge/test_modules</directory>
+        <directory>../modules/varnish_purger/tests</directory>
+        <directory>../modules/varnish_purger/test_modules</directory>
       </exclude>
     </whitelist>
   </filter>
