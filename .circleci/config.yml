@@ -185,7 +185,7 @@ code_sniffer: &code_sniffer
     - run:
         working_directory: /var/www/html
         command: |
-          ./code-sniffer.sh $CIRCLE_PROJECT_REPONAME
+          ./code-sniffer.sh varnish_purge
 
     - store_test_results:
         path: /var/www/html/artifacts/phpcs
