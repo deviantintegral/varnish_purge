@@ -102,33 +102,6 @@ functional_tests: &functional_tests
 
     - checkout
 
-    # Circle doesn't support volume mounts, so we'd have to build our own
-    # container to test the VCL. However, we also want to test VCL changes in
-    # PRs, so we may as well just install varnish in the primary container
-    # instead of running varnish in a secondary sidecar container.
-    - run: Install varnish
-        command: |
-          sudo apt-get update
-          sudo apt-get install -y curl gnupg apt-transport-https
-          curl -L https://packagecloud.io/varnishcache/varnish60lts/gpgkey | sudo apt-key add -
-          echo 'deb https://packagecloud.io/varnishcache/varnish60lts/ubuntu/ bionic main' | sudo tee -a /etc/apt/sources.list
-          echo ' deb-src https://packagecloud.io/varnishcache/varnish60lts/ubuntu/ bionic main' | sudo tee -a /etc/apt/sources.list
-          sudo apt-get update
-          sudo apt-get install -y varnish
-
-    - run: Configure and start varnish
-        command: |
-          # Run two separate Varnish instances so we can test purging them all.
-          varnishd \
-            -a :8080 \
-            -T localhost:6082 \
-            -f ./zeroconfig.vcl
-
-          varnishd \
-            -a :8081 \
-            -T localhost:6083 \
-            -f ./zeroconfig.vcl
-
     - run:
         working_directory: /var/www/html
         command: |
@@ -167,6 +140,27 @@ behat_tests: &behat_tests
         at: /var/www/html
 
     - checkout
+
+    # Circle doesn't support volume mounts, so we'd have to build our own
+    # container to test the VCL. However, we also want to test VCL changes in
+    # PRs, so we may as well just install varnish in the primary container
+    # instead of running varnish in a secondary sidecar container.
+    - run: Install varnish
+        command: |
+          sudo apt-get update
+          sudo apt-get install -y curl gnupg apt-transport-https
+          curl -L https://packagecloud.io/varnishcache/varnish60lts/gpgkey | sudo apt-key add -
+          echo 'deb https://packagecloud.io/varnishcache/varnish60lts/ubuntu/ bionic main' | sudo tee -a /etc/apt/sources.list
+          echo ' deb-src https://packagecloud.io/varnishcache/varnish60lts/ubuntu/ bionic main' | sudo tee -a /etc/apt/sources.list
+          sudo apt-get update
+          sudo apt-get install -y varnish
+
+    - run: Configure and start varnish
+        command: |
+          varnishd \
+            -a :8080 \
+            -T localhost:6082 \
+            -f $(pwd)/zeroconfig.vcl
 
     - run:
         working_directory: /var/www/html

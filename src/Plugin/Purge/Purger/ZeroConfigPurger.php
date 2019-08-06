@@ -1,9 +1,9 @@
 <?php
 
-namespace Drupal\varnish_purge\Plugin\Purge\Purger;
+namespace Drupal\varnish_purger\Plugin\Purge\Purger;
 
 use Drupal\Core\Site\Settings;
-use Drupal\varnish_purge\DebugCallGraphTrait;
+use Drupal\varnish_purger\DebugCallGraphTrait;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Pool;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -59,11 +59,13 @@ class ZeroConfigPurger extends PurgerBase implements PurgerInterface {
    *
    * @var string[]
    */
-  private $reverseProxies;
+  private $reverseProxies = [];
 
   /**
    * Constructs a ZeroConfigPurger object.
    *
+   * @param \Drupal\Core\Site\Settings $settings
+   *   The site settings to load reverse proxy addresses from.
    * @param \GuzzleHttp\ClientInterface $http_client
    *   An HTTP client that can perform remote requests.
    * @param array $configuration
@@ -77,7 +79,7 @@ class ZeroConfigPurger extends PurgerBase implements PurgerInterface {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
     // Take the IP addresses from the 'reverse_proxies' setting.
-    if (is_array($reverse_proxies = $settings->get('reverse_proxies'))) {
+    if (is_array($reverse_proxies = $settings->get('reverse_proxy_addresses'))) {
       foreach ($reverse_proxies as $reverse_proxy) {
         if ($reverse_proxy && strpos($reverse_proxy, '.')) {
           $this->reverseProxies[] = $reverse_proxy;
@@ -282,7 +284,7 @@ class ZeroConfigPurger extends PurgerBase implements PurgerInterface {
           yield $group_id => function($poolopt) use ($tags, $ipv4) {
             $opt = [
               'headers' => [
-                'X-Acquia-Purge-Tags' => $tags,
+                'Cache-Tags' => $tags,
                 'Accept-Encoding' => 'gzip',
               ]
             ];

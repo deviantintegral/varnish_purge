@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\varnish_purge;
+namespace Drupal\varnish_purger;
 
 use Drupal\purge\Logger\PurgeLoggerAwareTrait;
 use GuzzleHttp\Exception\ConnectException;
