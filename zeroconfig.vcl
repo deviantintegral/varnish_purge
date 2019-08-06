@@ -22,7 +22,7 @@ vcl 4.0;
 # include "/etc/varnish/backends.vcl";
 
 backend drupal {
-    .host = "localhost";
+    .host = "127.0.0.1";
     .port = "80";
     .max_connections = 300; # That's it
 #     .probe = {
