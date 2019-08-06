@@ -63,7 +63,7 @@ update_dependencies: &update_dependencies
     - run:
         working_directory: /var/www/html
         command: |
-          ./update-dependencies.sh $CIRCLE_PROJECT_REPONAME
+          ./update-dependencies.sh varnish_purger
 
     - save_cache: *save_cache
 
@@ -85,7 +85,7 @@ unit_kernel_tests: &unit_kernel_tests
     - run:
         working_directory: /var/www/html
         command: |
-          ./test.sh $CIRCLE_PROJECT_REPONAME
+          ./test.sh varnish_purger
 
     - store_test_results:
         path: /var/www/html/artifacts/phpunit
@@ -105,7 +105,7 @@ functional_tests: &functional_tests
     - run:
         working_directory: /var/www/html
         command: |
-          ./test-functional.sh $CIRCLE_PROJECT_REPONAME
+          ./test-functional.sh varnish_purger
 
     - store_test_results:
         path: /var/www/html/artifacts/phpunit
@@ -125,7 +125,7 @@ functional_js_tests: &functional_js_tests
     - run:
         working_directory: /var/www/html
         command: |
-          ./test-functional-js.sh $CIRCLE_PROJECT_REPONAME
+          ./test-functional-js.sh varnish_purger
 
     - store_test_results:
         path: /var/www/html/artifacts/phpunit
@@ -144,7 +144,7 @@ behat_tests: &behat_tests
     - run:
         working_directory: /var/www/html
         command: |
-          ./behat.sh $CIRCLE_PROJECT_REPONAME
+          ./behat.sh varnish_purger
 
     - store_artifacts:
         path: /var/www/html/artifacts
