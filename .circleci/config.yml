@@ -152,8 +152,8 @@ behat_tests: &behat_tests
           sudo apt-get install debian-archive-keyring
           sudo apt-get install -y curl gnupg apt-transport-https
           curl -L https://packagecloud.io/varnishcache/varnish60lts/gpgkey | sudo apt-key add -
-          echo 'deb https://packagecloud.io/varnishcache/varnish60lts/debian/ buster main' | sudo tee -a /etc/apt/sources.list
-          echo ' deb-src https://packagecloud.io/varnishcache/varnish60lts/debian/ buster main' | sudo tee -a /etc/apt/sources.list
+          echo 'deb https://packagecloud.io/varnishcache/varnish60lts/debian/ stretch main' | sudo tee -a /etc/apt/sources.list
+          echo ' deb-src https://packagecloud.io/varnishcache/varnish60lts/debian/ stretch main' | sudo tee -a /etc/apt/sources.list
           sudo apt-get update
           sudo apt-get install -y varnish
 
