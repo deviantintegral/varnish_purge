@@ -73,7 +73,7 @@ class VarnishPurgeFeatureContext extends RawDrupalContext implements SnippetAcce
       $node->delete();
     }
 
-    static::purgeTag('node_list');
+    static::purgeWildcardUrl('http://localhost/.*');
   }
 
   /**
@@ -87,17 +87,8 @@ class VarnishPurgeFeatureContext extends RawDrupalContext implements SnippetAcce
    * @When I purge the home page
    */
   public function iPurgeTheHomepage() {
-    $p = \Drupal::service('purge.purgers');
-    // This dummy processor is literally called "a".
-    $a = \Drupal::service('purge.processors')->get('a');
-    $invalidations = [
-      \Drupal::service('purge.invalidation.factory')
-        ->get('url', '/')
-    ];
-
-    // Varnish does have a queue, so if we get random failures we may need a
-    // sleep here.
-    $p->invalidate($a, $invalidations);
+    $url = 'http://localhost/';
+    $this->purgeUrl($url);
   }
 
   private static function purgeTag(string $tag) {
@@ -107,6 +98,40 @@ class VarnishPurgeFeatureContext extends RawDrupalContext implements SnippetAcce
     $invalidations = [
       \Drupal::service('purge.invalidation.factory')
         ->get('tag', $tag)
+    ];
+
+    // Varnish does have a queue, so if we get random failures we may need a
+    // sleep here.
+    $p->invalidate($a, $invalidations);
+  }
+
+  /**
+   * @param string $url
+   */
+  private static function purgeWildcardUrl(string $url) {
+    $p = \Drupal::service('purge.purgers');
+    // This dummy processor is literally called "a".
+    $a = \Drupal::service('purge.processors')->get('a');
+    $invalidations = [
+      \Drupal::service('purge.invalidation.factory')
+        ->get('wildcardurl', $url)
+    ];
+
+    // Varnish does have a queue, so if we get random failures we may need a
+    // sleep here.
+    $p->invalidate($a, $invalidations);
+  }
+
+  /**
+   * @param string $url
+   */
+  private static function purgeUrl(string $url) {
+    $p = \Drupal::service('purge.purgers');
+    // This dummy processor is literally called "a".
+    $a = \Drupal::service('purge.processors')->get('a');
+    $invalidations = [
+      \Drupal::service('purge.invalidation.factory')
+        ->get('url', $url)
     ];
 
     // Varnish does have a queue, so if we get random failures we may need a

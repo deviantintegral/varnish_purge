@@ -416,7 +416,7 @@ class ZeroConfigPurger extends PurgerBase implements PurgerInterface {
             if (is_array($poolopt) && count($poolopt)) {
               $opt = array_merge($poolopt, $opt);
             }
-            return $this->client->requestAsync('BAN', $uri, $opt);
+            return $this->client->requestAsync('PURGE', $uri, $opt);
           };
         }
       }
@@ -470,7 +470,7 @@ class ZeroConfigPurger extends PurgerBase implements PurgerInterface {
     // Synchronously request each balancer to wipe out everything for this site.
     foreach ($this->getReverseProxies() as $ip_address) {
       try {
-        $this->client->request('BAN', 'http://' . $ip_address . '/site', [
+        $this->client->request('PURGE', 'http://' . $ip_address . '/site', [
           'connect_timeout' => self::CONNECT_TIMEOUT,
           'http_errors' => FALSE,
           'timeout' => self::TIMEOUT,

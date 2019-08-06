@@ -9,7 +9,7 @@ Feature: Zero-configuration purging for Varnish
     And I visit "/"
     Then I should see the text "Node title"
 
-  Scenario: Purge URLs
+  Scenario: Purge specific URL
     Given I visit "/"
     Then I should not see the text "Node title"
     And I am viewing an article with the title "Node title"
@@ -21,6 +21,7 @@ Feature: Zero-configuration purging for Varnish
     Given I visit "/"
     Then I should not see the text "Node title"
     And I am viewing an article with the title "Node title"
+    And I purge everything
     And I visit "/"
     Then I should not see the text "Node title"
 
