@@ -65,9 +65,14 @@ class VarnishPurgeFeatureContext extends RawDrupalContext implements SnippetAcce
 
   /**
    * @param \Behat\Testwork\Hook\Scope\AfterSuiteScope $scope
-   * @AfterSuite
+   * @AfterScenario
    */
-  public static function tearDown(\Behat\Testwork\Hook\Scope\AfterSuiteScope $scope) {
+  public static function tearDown(\Behat\Testwork\Hook\Scope\AfterTestScope $scope) {
+    $nodes = node_load_multiple();
+    foreach ($nodes as $node) {
+      $node->delete();
+    }
+
     static::purgeTag('node_list');
   }
 

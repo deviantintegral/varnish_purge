@@ -17,6 +17,13 @@ Feature: Zero-configuration purging for Varnish
     And I visit "/"
     Then I should see the text "Node title"
 
+  Scenario: Purge everything
+    Given I visit "/"
+    Then I should not see the text "Node title"
+    And I am viewing an article with the title "Node title"
+    And I visit "/"
+    Then I should not see the text "Node title"
+
   Scenario: Page is cached
     Given I visit "/"
     Then I should not see the text "Node title"
