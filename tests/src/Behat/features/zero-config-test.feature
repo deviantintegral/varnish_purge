@@ -23,7 +23,7 @@ Feature: Zero-configuration purging for Varnish
     And I am viewing an article with the title "Node title"
     And I purge everything
     And I visit "/"
-    Then I should not see the text "Node title"
+    Then I should see the text "Node title"
 
   Scenario: Page is cached
     Given I visit "/"

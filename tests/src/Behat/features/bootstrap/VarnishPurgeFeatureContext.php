@@ -24,11 +24,10 @@ class VarnishPurgeFeatureContext extends RawDrupalContext implements SnippetAcce
     // We need a concrete plugin class and one is included in the purge module.
     $data['extension_discovery_scan_tests'] = TRUE;
 
-    // Technically this shouldn't include a port, but we need to work against
-    // localhost and apache is on port 80 already.
     $data['reverse_proxy_addresses'] = [
-      '127.0.0.1:8080',
+      '127.0.0.1',
     ];
+    $data['varnish_purge_zeroconfig_port'] = 8080;
     new Settings($data);
 
     /** @var \Drupal\Core\Extension\ModuleHandler $moduleHandler */
@@ -73,7 +72,21 @@ class VarnishPurgeFeatureContext extends RawDrupalContext implements SnippetAcce
       $node->delete();
     }
 
-    static::purgeWildcardUrl('http://localhost/.*');
+    self::purgeEverything();
+  }
+
+  private static function purgeEverything(): void {
+    $p = \Drupal::service('purge.purgers');
+    // This dummy processor is literally called "a".
+    $a = \Drupal::service('purge.processors')->get('a');
+    $invalidations = [
+      \Drupal::service('purge.invalidation.factory')
+        ->get('everything', NULL)
+    ];
+
+    // Varnish does have a queue, so if we get random failures we may need a
+    // sleep here.
+    $p->invalidate($a, $invalidations);
   }
 
   /**
@@ -84,10 +97,17 @@ class VarnishPurgeFeatureContext extends RawDrupalContext implements SnippetAcce
   }
 
   /**
+   * @When I purge everything
+   */
+  public function iPurgeEverything() {
+    self::purgeEverything();
+  }
+
+  /**
    * @When I purge the home page
    */
   public function iPurgeTheHomepage() {
-    $url = 'http://localhost/';
+    $url = \Drupal::request()->getSchemeAndHttpHost() . '/';
     $this->purgeUrl($url);
   }
 

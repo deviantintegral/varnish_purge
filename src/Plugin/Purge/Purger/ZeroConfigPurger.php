@@ -6,6 +6,7 @@ use Drupal\Core\Site\Settings;
 use Drupal\varnish_purger\DebugCallGraphTrait;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Pool;
+use GuzzleHttp\Psr7\Uri;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\purge\Plugin\Purge\Purger\PurgerBase;
 use Drupal\purge\Plugin\Purge\Purger\PurgerInterface;
@@ -62,6 +63,13 @@ class ZeroConfigPurger extends PurgerBase implements PurgerInterface {
   private $reverseProxies = [];
 
   /**
+   * The port the reverse proxies are available on.
+   *
+   * @var ?int
+   */
+  private $proxyPort;
+
+  /**
    * Constructs a ZeroConfigPurger object.
    *
    * @param \Drupal\Core\Site\Settings $settings
@@ -85,6 +93,13 @@ class ZeroConfigPurger extends PurgerBase implements PurgerInterface {
           $this->reverseProxies[] = $reverse_proxy;
         }
       }
+    }
+
+    // Drupal's reverse proxy addresses only supports addresses and not ports.
+    // For tests, we need to run Apache on the same host as Varnish, so we need
+    // a way to set an alternate port.
+    if ($port = $settings->get('varnish_purge_zeroconfig_port')) {
+      $this->proxyPort = $port;
     }
 
     $this->client = $http_client;
@@ -291,7 +306,9 @@ class ZeroConfigPurger extends PurgerBase implements PurgerInterface {
             if (is_array($poolopt) && count($poolopt)) {
               $opt = array_merge($poolopt, $opt);
             }
-            return $this->client->requestAsync('BAN', "http://$ipv4/tags", $opt);
+            $uri = $this->baseUri($ipv4)
+              ->withPath('/tags');
+            return $this->client->requestAsync('BAN', $uri, $opt);
           };
         }
       }
@@ -344,9 +361,12 @@ class ZeroConfigPurger extends PurgerBase implements PurgerInterface {
       foreach ($invalidations as $inv) {
         foreach ($ipv4_addresses as $ipv4) {
           yield $inv->getId() => function($poolopt) use ($inv, $ipv4) {
-            $uri = $inv->getExpression();
-            $host = parse_url($uri, PHP_URL_HOST);
-            $uri = str_replace($host, $ipv4, $uri);
+            $uri = new Uri($inv->getExpression());
+            $host = $uri->getHost();
+            if ($uri->getPort()) {
+              $host .= ':' . $uri->getPort();
+            }
+            $uri = $uri->withHost($ipv4);
             $opt = [
               'headers' => [
                 'Accept-Encoding' => 'gzip',
@@ -416,7 +436,7 @@ class ZeroConfigPurger extends PurgerBase implements PurgerInterface {
             if (is_array($poolopt) && count($poolopt)) {
               $opt = array_merge($poolopt, $opt);
             }
-            return $this->client->requestAsync('PURGE', $uri, $opt);
+            return $this->client->requestAsync('BAN', $uri, $opt);
           };
         }
       }
@@ -470,11 +490,14 @@ class ZeroConfigPurger extends PurgerBase implements PurgerInterface {
     // Synchronously request each balancer to wipe out everything for this site.
     foreach ($this->getReverseProxies() as $ip_address) {
       try {
-        $this->client->request('PURGE', 'http://' . $ip_address . '/site', [
+        $uri = $this->baseUri($ip_address);
+        $uri = $uri->withPath('/.*');
+        $this->client->request('BAN', $uri, [
           'connect_timeout' => self::CONNECT_TIMEOUT,
           'http_errors' => FALSE,
           'timeout' => self::TIMEOUT,
           'headers' => [
+            'Host' => \Drupal::request()->getHost(),
             'Accept-Encoding' => 'gzip',
           ]
         ]);
@@ -503,6 +526,19 @@ class ZeroConfigPurger extends PurgerBase implements PurgerInterface {
    */
   protected function getReverseProxies(): array {
     return $this->reverseProxies;
+  }
+
+  /**
+   * @param string $ip_address
+   *
+   * @return \GuzzleHttp\Psr7\Uri
+   */
+  private function baseUri(string $ip_address) {
+    $uri = new Uri('http://' . $ip_address);
+    if ($this->proxyPort) {
+      $uri = $uri->withPort($this->proxyPort);
+    }
+    return $uri;
   }
 
 }
