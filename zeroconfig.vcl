@@ -47,6 +47,15 @@ backend drupal {
     .between_bytes_timeout  = 30s;     # How long to wait between bytes received from our backend?
 }
 
+# Unfortunately, more automatic management of this ACL is only available as a
+# part of the proprietary Varnish Cache Plus ACL module. For production
+# environments, this could be split out into a separate file and written
+# dynamically, restarting Varnish as needed.
+# https://docs.varnish-software.com/varnish-cache-plus/vmods/aclplus/
+acl purge {
+  "127.0.0.1";
+}
+
 import directors;
 sub vcl_init {
     new drupal_hosts = directors.round_robin();
@@ -57,18 +66,12 @@ sub vcl_init {
 sub vcl_recv {
   set req.backend_hint = drupal_hosts.backend();
 
-  # Pipe all requests for files whose Content-Length is >=10,000,000. See
-  # comment in vcl_backend_fetch.
-  if (req.http.x-pipe && req.restarts > 0) {
-    return(pipe);
-  }
-
   # Only allow BAN requests from IP addresses in the 'purge' ACL.
   if (req.method == "BAN") {
     # Check against the ACLs.
-    #  if (!client.ip ~ purge) {
-    #    return (synth(403, "Not allowed."));
-    #  }
+     if (!client.ip ~ purge) {
+       return (synth(403, "Not allowed."));
+     }
 
     # Logic for the ban, using the Cache-Tags header. For more info
     # see https://github.com/geerlingguy/drupal-vm/issues/397.
@@ -85,7 +88,16 @@ sub vcl_recv {
     return (synth(200, "Ban added."));
   }
 
-  # don't cache healthchecks
+  # TODO: This should be done by allowing PURGE from any backend host.
+  if (req.method == "PURGE") {
+   if (!client.ip ~ purge) {
+     return (synth(403, "Not allowed."));
+   }
+
+    return(purge);
+  }
+
+  # Don't cache healthchecks so we don't have stale results.
   if (req.url ~ "healthcheck") {
     return(pipe);
   }
@@ -95,15 +107,10 @@ sub vcl_recv {
   # is made to the backend for that object.
   set req.grace = 120s;
 
-  # EXAMPLE: How to do an external redirect in Varnish
-  # in case we need to redirect a site to another balancer.
-  # if (req.http.host ~ "^(www.)?francesoir.fr$") {
-  #  error 302;
-  # }
-
-  # TODO: This should be done by allowing PURGE from any backend host.
-  if (req.method == "PURGE") {
-    return(purge);
+  # Pipe all requests for files whose Content-Length is >=10,000,000. See
+  # comment in vcl_backend_fetch.
+  if (req.http.x-pipe && req.restarts > 0) {
+    return(pipe);
   }
 
   # Don't Cache executables or archives
@@ -117,17 +124,6 @@ sub vcl_recv {
   # Don't check cache for POSTs and various other HTTP request types
   if (req.method != "GET" && req.method != "HEAD") {
     return(pass);
-  }
-
-  # Find out if the request is pinned to a specific device and store it for later.
-  if (req.http.Cookie ~ "desktop") {
-    set req.http.X-pinned-device = "desktop";
-  }
-  else if (req.http.Cookie ~ "mobile") {
-    set req.http.X-pinned-device = "mobile";
-  }
-  else if (req.http.Cookie ~ "tablet") {
-    set req.http.X-pinned-device = "tablet";
   }
 
   # Always cache the following file types for all users if not coming from the private file system.
@@ -173,14 +169,14 @@ sub vcl_recv {
     }
   }
 
-  # x-forward-for
+  # Set X-Forwarded-For so the backend knows the true client IP.
   if (req.http.x-forwarded-for) {
     set req.http.X-Forwarded-For = req.http.X-Forwarded-For;
   } else {
     set req.http.X-Forwarded-For = client.ip;
   }
 
-  # Default cache check
+  # Default cache check.
   return(hash);
 }
 
@@ -229,22 +225,21 @@ sub vcl_backend_response {
     }
   }
 
-  # Respect explicit no-cache headers
+  # Respect explicit no-cache headers.
   if (beresp.http.Pragma ~ "no-cache" ||
      beresp.http.Cache-Control ~ "no-cache" ||
      beresp.http.Cache-Control ~ "private") {
     call varnish_pass;
   }
 
-  # Don't cache cron.php
+  # Don't cache cron.php.
   if (bereq.url ~ "^/cron.php") {
     set beresp.uncacheable = true;
     set beresp.ttl = 120s;
     return (deliver);
   }
 
-  # Don't cache if Drupal session cookie is set
-  # Note: Pressflow doesn't send SESS cookies to anon users
+  # Don't cache if Drupal session cookie is set.
   if (beresp.http.Set-Cookie ~ "(^|;\s*)(S?SESS[a-zA-Z0-9]*)=") {
     call varnish_pass;
   }
@@ -276,14 +271,11 @@ sub vcl_backend_response {
 # Deliver the response to the client
 sub vcl_deliver {
   # Invalid session cookies will cause Varnish to pass on the request and by
-  # default respect the Drupal cache-control header. Since the session is
+  # default respect the Drupal Cache-Control header. Since the session is
   # invalid, Drupal will return the anonymous TTL of 1 year. We need to make
   # sure that Drupal is not returning a cookie (indicating a valid session),
-  # and then drop that ttl back down to 15 minutes.
-  # Pass a shorter cache-control header on to the browser compared to the
-  # default max-age set in Drupal.
-  # @see https://varnish-cache.org/trac/wiki/VCLExampleLongerCaching
-  # We also avoid acting on responses that are explicitly no-cache responses.
+  # and then drop that ttl back down to 15 minutes. We also avoid acting on
+  # responses that are explicitly no-cache responses.
   if (resp.http.Cache-Control !~ "no-cache" && !resp.http.Set-Cookie) {
     # Remove Expires from backend, it's not long enough.
     unset resp.http.expires;
@@ -353,13 +345,11 @@ sub vcl_deliver {
 
 # Backend down: Error page returned when all backend servers are down
 sub vcl_backend_error {
-  # EXAMPLE: How to do an external redirect in Varnish
-  # in case we need to redirect a site to another balancer.
   return (fail("Service unavailable"));
 }
 
+# Default Varnish synthesized response for errors or management requests.
 sub vcl_synth {
-  # Default Varnish synthesized response for errors or management requests.
   set resp.http.Content-Type = "text/html; charset=utf-8";
       set resp.http.Retry-After = "5";
     synthetic( {"<!DOCTYPE html>
