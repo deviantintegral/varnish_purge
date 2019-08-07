@@ -15,6 +15,14 @@ use Drupal\purge\Plugin\Purge\Invalidation\InvalidationInterface;
 /**
  * A purger with minimal configuration required.
  *
+ * This purger requires that every Varnish server is configured as a reverse
+ * proxy in Drupal's settings. As well, it expects to be used with the included
+ * "zeroconfig.vcl" file, though it's expected that is modified as needed.
+ *
+ * This implementation is heavily inspired by the Acquia Cloud purger.
+ *
+ * @see \Drupal\acquia_purge\Plugin\Purge\Purger\AcquiaCloudPurger
+ *
  * @PurgePurger(
  *   id = "varnish_zeroconfig_purger",
  *   label = @Translation("Varnish zero-configuration purger"),
