@@ -2,23 +2,30 @@
 # Drupal 8 cache tag support inspired by https://gitlab.wklive.net/snippets/32
 
 # This configuration file supports the following PURGE and BAN requests:
-
-#  - PURGE accepts a URL or a URL with a regular expression in the path.
+#
+#  - PURGE accepts a single URL.
 #    $ curl 'http://HOSTNAME-OR-IP-OF-VARNISH/videos' -X PURGE
-#    $ curl 'http://HOSTNAME-OR-IP-OF-VARNISH/'.*projects.*' -X PURGE
 #
 #  - BAN accepts a Cache-Tags header containing the pipe-separated cache tags to
 #    ban.
 #    $ curl 'http://HOSTNAME-OR-IP-OF-VARNISH/' -X BAN -H 'Cache-Tags: node_list'
 #    $ curl 'http://HOSTNAME-OR-IP-OF-VARNISH/' -X BAN -H 'Cache-Tags: media:3918|media_list'
 #
+#  - BAN also accepts wildcard URLs, such as:
+#    $ curl 'http://HOSTNAME-OR-IP-OF-VARNISH/.*projects.*' -X BAN
+#
+#  - BAN can ban the entire site with:
+#    $ curl 'http://HOSTNAME-OR-IP-OF-VARNISH/.*' -X BAN
+#
+# https://stackoverflow.com/questions/41480688/what-is-the-difference-between-bans-and-purge-in-varnish-http-cache
+#
 # It is assumed this configuration is used with the varnish_purge Drupal
-# module. Most sites will want three purging configurations; one to purge tags
-# using the "Varnish bundled" purger, one to purge individual paths, and one to
-# act as the "everything" purge (which is just a path with the .* regex).
+# module and the "Zero Configuration" varnish purger.
 
 vcl 4.0;
 
+# For tests and simplicity we inline this backend here. Production environments
+# would generally pull these out into a separate included VCL.
 # include "/etc/varnish/backends.vcl";
 
 backend drupal {
@@ -31,8 +38,7 @@ backend drupal {
 #             "Host: www.example.com"
 #             "Connection: close";
 #         .interval = 5s; # check the health of each backend every 5 seconds
-#         .timeout = 10s; # A high timeout because we test an uncached Drupal bootstrap
-#         .initial = 0; # TODO: Assume all backends are healthy on varnish startup - but this doesn't actually work.
+#         .timeout = 2s;
 #         .window = 5;
 #         .threshold = 3;
 #         }
@@ -43,13 +49,13 @@ backend drupal {
 
 import directors;
 sub vcl_init {
-    new drupalhosts = directors.round_robin();
-    drupalhosts.add_backend(drupal);
+    new drupal_hosts = directors.round_robin();
+    drupal_hosts.add_backend(drupal);
 }
 
 # Incoming requests: Decide whether to try cache or not
 sub vcl_recv {
-  set req.backend_hint = drupalhosts.backend();
+  set req.backend_hint = drupal_hosts.backend();
 
   # Pipe all requests for files whose Content-Length is >=10,000,000. See
   # comment in vcl_backend_fetch.
@@ -72,7 +78,7 @@ sub vcl_recv {
       ban("obj.http.Cache-Tags ~ " + req.http.Cache-Tags);
     }
     else {
-      return (synth(403, "Cache-Tags header missing."));
+      ban("req.url ~ " + req.url);
     }
 
     # Throw a synthetic page so the request won't go to the backend.
@@ -95,19 +101,9 @@ sub vcl_recv {
   #  error 302;
   # }
 
-  # PURGE method support: PURGE request must include
-  # a X-Nbcu-Purge header which is weak but better
-  # than nothing or ip address whack-a-mole. Example:
-  # curl -X PURGE -H "X-Nbcu-Purge: sitename" http://site/file
   # TODO: This should be done by allowing PURGE from any backend host.
   if (req.method == "PURGE") {
-    # We use obj.http instead of req.http so this is "bun lurker" friendly.
-    # https://varnish-cache.org/docs/trunk/users-guide/purging.html
-    # ban("obj.http.url ~ " + req.url);
-    # TODO: However, this isn't working for me. Use the less performant option
-    # as we expect most cache operations to be by cache tags.
-    ban("req.url ~ " + req.url);
-    return (synth(200, "Ban added for " + req.url));
+    return(purge);
   }
 
   # Don't Cache executables or archives
@@ -188,19 +184,6 @@ sub vcl_recv {
   return(hash);
 }
 
-
-# Cache miss: request is about to be sent to the backend
-sub vcl_miss {
-  # PURGE method support
-  if (req.method == "PURGE") {
-    return (synth(404, "Not in cache."));
-  }
-}
-
-# Pass (including HitPass): request is about to be sent to the backend
-# or about to be delivered
-sub vcl_pass {
-}
 
 # Piped requests should not support keepalive because
 # Varnish won't have chance to process or log the subrequests
