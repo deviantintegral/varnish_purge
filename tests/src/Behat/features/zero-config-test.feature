@@ -39,3 +39,11 @@ Feature: Zero-configuration purging for Varnish
     And I am viewing an article with the title "Node title"
     And I visit "/"
     Then I should not see the text "Node title"
+
+  Scenario: Wildcards are purged
+    Given I visit "/node"
+    Then I should not see the text "Node title"
+    And I am viewing an article with the title "Node title"
+    And I purge the node list
+    And I visit "/node"
+    Then I should see the text "Node title"

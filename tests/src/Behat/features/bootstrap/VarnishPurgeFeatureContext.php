@@ -120,6 +120,14 @@ class VarnishPurgeFeatureContext extends RawDrupalContext implements SnippetAcce
     $this->purgeUrl($url);
   }
 
+  /**
+   * @When I purge the node list
+   */
+  public function iPurgeTheNodeList() {
+    $url = \Drupal::request()->getSchemeAndHttpHost() . '/';
+    static::purgeWildcardUrl($url . 'no.*');
+  }
+
   private static function purgeTags(array $tags) {
     $p = \Drupal::service('purge.purgers');
     // This dummy processor is literally called "a".
