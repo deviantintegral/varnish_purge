@@ -1,5 +1,12 @@
 @api
 Feature: Zero-configuration purging for Varnish
+  # Varnish must be running to run these tests. It can be simpler to disable
+  # the default Varnish start scripts and run varnish directly. That way, if
+  # the cache becomes broken during local development, it's easy to restart.
+  # For example:
+  # sudo systemctl disable varnish && sudo systemctl stop varnish
+  # sudo pkill varnishd; sleep 1; sudo varnishd -a :8080 -T localhost:6082 -f /home/vagrant/code/modules/varnish_purge/zeroconfig.vcl
+  # An alternative would be to copy or symlink "zeroconfig.vcl" into /etc/varnish/default.vcl.
 
   Scenario: Purge nodes
     Given I visit "/"
