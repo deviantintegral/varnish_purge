@@ -100,7 +100,9 @@ class VarnishPurgeFeatureContext extends RawDrupalContext implements SnippetAcce
    * @When I purge nodes and media
    */
   public function iPurgeNodesAndMedia() {
-    $this->purgeTags(['node_list', 'media_list']);
+    // Test we properly replace all spaces with pipes, by placing the node_list
+    // tag at the end.
+    $this->purgeTags(['user_list', 'media_list', 'node_list']);
   }
 
   /**
