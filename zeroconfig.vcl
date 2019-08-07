@@ -9,7 +9,7 @@
 #  - BAN accepts a Cache-Tags header containing the pipe-separated cache tags to
 #    ban.
 #    $ curl 'http://HOSTNAME-OR-IP-OF-VARNISH/' -X BAN -H 'Cache-Tags: node_list'
-#    $ curl 'http://HOSTNAME-OR-IP-OF-VARNISH/' -X BAN -H 'Cache-Tags: media:3918|media_list'
+#    $ curl 'http://HOSTNAME-OR-IP-OF-VARNISH/' -X BAN -H 'Cache-Tags: media:3918 media_list'
 #
 #  - BAN also accepts wildcard URLs, such as:
 #    $ curl 'http://HOSTNAME-OR-IP-OF-VARNISH/.*projects.*' -X BAN
@@ -54,6 +54,7 @@ backend drupal {
 # https://docs.varnish-software.com/varnish-cache-plus/vmods/aclplus/
 acl purge {
   "127.0.0.1";
+  "::1";
 }
 
 import directors;
@@ -78,6 +79,13 @@ sub vcl_recv {
     # Note the above issue shows a comma-delimited list for tags, when they
     # must be pipe-separated.
     if (req.http.Cache-Tags) {
+      # Escape any pipes in the original header, as a pipe is a valid character
+      # for a cache tag.
+      set req.http.Cache-Tags = regsuball(req.http.Cache-Tags, "\|", "\\|");
+
+      # Switch spaces to a regular expresson "or".
+      set req.http.Cache-Tags = regsuball(req.http.Cache-Tags, " ", "\|");
+
       ban("obj.http.Cache-Tags ~ " + req.http.Cache-Tags);
     }
     else {
