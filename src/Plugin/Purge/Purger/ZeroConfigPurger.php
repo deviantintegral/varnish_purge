@@ -396,20 +396,7 @@ class ZeroConfigPurger extends PurgerBase implements PurgerInterface {
     $results = $this->getResultsConcurrently('invalidateUrls', $requests);
 
     // Triage the results and set all invalidation states correspondingly.
-    foreach ($invalidations as $invalidation) {
-      $inv_id = $invalidation->getId();
-      if ((!isset($results[$inv_id])) || (!count($results[$inv_id]))) {
-        $invalidation->setState(InvalidationInterface::FAILED);
-      }
-      else {
-        if (in_array(FALSE, $results[$inv_id])) {
-          $invalidation->setState(InvalidationInterface::FAILED);
-        }
-        else {
-          $invalidation->setState(InvalidationInterface::SUCCEEDED);
-        }
-      }
-    }
+    $this->triageResults($invalidations, $results);
 
     $this->debug(__METHOD__);
   }
@@ -456,20 +443,7 @@ class ZeroConfigPurger extends PurgerBase implements PurgerInterface {
     $results = $this->getResultsConcurrently('invalidateWildcardUrls', $requests);
 
     // Triage the results and set all invalidation states correspondingly.
-    foreach ($invalidations as $invalidation) {
-      $inv_id = $invalidation->getId();
-      if ((!isset($results[$inv_id])) || (!count($results[$inv_id]))) {
-        $invalidation->setState(InvalidationInterface::FAILED);
-      }
-      else {
-        if (in_array(FALSE, $results[$inv_id])) {
-          $invalidation->setState(InvalidationInterface::FAILED);
-        }
-        else {
-          $invalidation->setState(InvalidationInterface::SUCCEEDED);
-        }
-      }
-    }
+    $this->triageResults($invalidations, $results);
 
     $this->debug(__METHOD__);
   }
@@ -551,6 +525,31 @@ class ZeroConfigPurger extends PurgerBase implements PurgerInterface {
       $uri = $uri->withPort($this->proxyPort);
     }
     return $uri;
+  }
+
+  /**
+   * Set invalidation result states.
+   *
+   * @param \Drupal\purge\Plugin\Purge\Invalidation\InvalidationInterface[] $invalidations
+   *   The array of invalidations.
+   * @param array $results
+   *   The array of result booleans, indexed by invalidation ID.
+   */
+  private function triageResults(array $invalidations, array $results) {
+    foreach ($invalidations as $invalidation) {
+      $inv_id = $invalidation->getId();
+      if ((!isset($results[$inv_id])) || (!count($results[$inv_id]))) {
+        $invalidation->setState(InvalidationInterface::FAILED);
+      }
+      else {
+        if (in_array(FALSE, $results[$inv_id])) {
+          $invalidation->setState(InvalidationInterface::FAILED);
+        }
+        else {
+          $invalidation->setState(InvalidationInterface::SUCCEEDED);
+        }
+      }
+    }
   }
 
 }
