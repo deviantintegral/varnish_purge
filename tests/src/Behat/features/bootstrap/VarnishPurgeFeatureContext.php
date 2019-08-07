@@ -75,7 +75,7 @@ class VarnishPurgeFeatureContext extends RawDrupalContext implements SnippetAcce
     self::purgeEverything();
   }
 
-  private static function purgeEverything(): void {
+  private static function purgeEverything() {
     $p = \Drupal::service('purge.purgers');
     // This dummy processor is literally called "a".
     $a = \Drupal::service('purge.processors')->get('a');
