@@ -373,12 +373,13 @@ class ZeroConfigPurger extends PurgerBase implements PurgerInterface {
       foreach ($invalidations as $inv) {
         foreach ($ipv4_addresses as $ipv4) {
           yield $inv->getId() => function($poolopt) use ($inv, $ipv4) {
-            $uri = new Uri($inv->getExpression());
-            $host = $uri->getHost();
-            if ($uri->getPort()) {
-              $host .= ':' . $uri->getPort();
+            $expression = new Uri($inv->getExpression());
+            $host = $expression->getHost();
+            if ($port = $expression->getPort()) {
+              $host .= ':' . $port;
             }
-            $uri = $uri->withHost($ipv4);
+            $uri = $this->baseUri($ipv4)
+              ->withPath($expression->getPath());
             $opt = [
               'headers' => [
                 'Accept-Encoding' => 'gzip',
@@ -425,9 +426,10 @@ class ZeroConfigPurger extends PurgerBase implements PurgerInterface {
       foreach ($invalidations as $inv) {
         foreach ($ipv4_addresses as $ipv4) {
           yield $inv->getId() => function($poolopt) use ($inv, $ipv4) {
-            $uri = str_replace('https://', 'http://', $inv->getExpression());
-            $host = parse_url($uri, PHP_URL_HOST);
-            $uri = str_replace($host, $ipv4, $uri);
+            $uri = (new Uri($inv->getExpression()))
+              ->withScheme('http');
+            $host = $uri->getHost();
+            $uri = $uri->withHost($ipv4);
             $opt = [
               'headers' => [
                 'Accept-Encoding' => 'gzip',
