@@ -13,6 +13,8 @@ use Drupal\purge\Plugin\Purge\Purger\PurgerInterface;
 use Drupal\purge\Plugin\Purge\Invalidation\InvalidationInterface;
 
 /**
+ * A purger with minimal configuration required.
+ *
  * @PurgePurger(
  *   id = "varnish_zeroconfig_purger",
  *   label = @Translation("Varnish zero-configuration purger"),
@@ -492,15 +494,13 @@ class ZeroConfigPurger extends PurgerBase implements PurgerInterface {
       try {
         $uri = $this->baseUri($ip_address);
         $uri = $uri->withPath('/.*');
-        $this->client->request('BAN', $uri, [
-          'connect_timeout' => self::CONNECT_TIMEOUT,
-          'http_errors' => FALSE,
-          'timeout' => self::TIMEOUT,
+        $options = [
           'headers' => [
             'Host' => \Drupal::request()->getHost(),
             'Accept-Encoding' => 'gzip',
           ]
-        ]);
+        ];
+        $this->client->request('BAN', $uri, $this->getGlobalOptions($options));
       }
       catch (\Exception $e) {
         $this->logFailedRequest('invalidateEverything', $e);
@@ -522,6 +522,8 @@ class ZeroConfigPurger extends PurgerBase implements PurgerInterface {
   }
 
   /**
+   * Return the available reverse proxies.
+   *
    * @return string[]
    */
   protected function getReverseProxies(): array {
@@ -529,6 +531,8 @@ class ZeroConfigPurger extends PurgerBase implements PurgerInterface {
   }
 
   /**
+   * Create a URI with the configured proxy port.
+   *
    * @param string $ip_address
    *
    * @return \GuzzleHttp\Psr7\Uri
