@@ -121,7 +121,7 @@ class VarnishPurgeFeatureContext extends RawDrupalContext implements SnippetAcce
   }
 
   /**
-   * @When I purge the node list
+   * @When I purge no-star
    */
   public function iPurgeTheNodeList() {
     $url = \Drupal::request()->getSchemeAndHttpHost() . '/';
