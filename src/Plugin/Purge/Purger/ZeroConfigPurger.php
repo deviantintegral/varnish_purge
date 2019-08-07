@@ -261,7 +261,7 @@ class ZeroConfigPurger extends PurgerBase implements PurgerInterface {
     $this->debug(__METHOD__);
 
     // Set invalidation states to PROCESSING. Detect tags with spaces in them,
-    // as space is the only character Drupal core explicitely forbids in tags.
+    // as space is the only character Drupal core explicitly forbids in tags.
     foreach ($invalidations as $invalidation) {
       $tag = $invalidation->getExpression();
       if (strpos($tag, ' ') !== FALSE) {
