@@ -275,7 +275,7 @@ class ZeroConfigPurger extends PurgerBase implements PurgerInterface {
       }
     }
 
-    // Create grouped sets of 12 so that we can spread out the BAN load.
+    // Create grouped sets of 15 so that we can spread out the BAN load.
     $group = 0;
     $groups = [];
     foreach ($invalidations as $invalidation) {
@@ -354,6 +354,8 @@ class ZeroConfigPurger extends PurgerBase implements PurgerInterface {
   /**
    * Invalidate a set of URL invalidations.
    *
+   * @param \Drupal\purge\Plugin\Purge\Invalidation\InvalidationInterface[] $invalidations
+   *
    * @see \Drupal\purge\Plugin\Purge\Purger\PurgerInterface::invalidate()
    * @see \Drupal\purge\Plugin\Purge\Purger\PurgerInterface::routeTypeToMethod()
    */
@@ -404,8 +406,10 @@ class ZeroConfigPurger extends PurgerBase implements PurgerInterface {
   /**
    * Invalidate URLs that contain the wildcard character "*".
    *
-   * @see \Drupal\purge\Plugin\Purge\Purger\PurgerInterface::invalidate()
+   * @param \Drupal\purge\Plugin\Purge\Invalidation\InvalidationInterface[] $invalidations
+   *
    * @see \Drupal\purge\Plugin\Purge\Purger\PurgerInterface::routeTypeToMethod()
+   * @see \Drupal\purge\Plugin\Purge\Purger\PurgerInterface::invalidate()
    */
   public function invalidateWildcardUrls(array $invalidations) {
     $this->debug(__METHOD__);
